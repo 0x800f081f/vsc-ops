@@ -51,3 +51,22 @@ variable "node_count" {
     error_message = "node_count muss mindestens 1 sein - 0 wuerde alle Worker-Nodes entfernen."
   }
 }
+
+# --- Aufgabe 4: Managed PostgreSQL ---
+variable "db_cluster_name" {
+  description = "Name der Managed-PostgreSQL-Instanz"
+  type        = string
+  default     = "teko-pg"
+}
+
+variable "db_version" {
+  description = "PostgreSQL-Hauptversion (wie bisher im Cluster: 16)"
+  type        = string
+  default     = "16"
+}
+
+variable "db_size" {
+  description = "Groesse der DB-Instanz (kleinste = guenstigste)"
+  type        = string
+  default     = "db-s-1vcpu-1gb"
+}

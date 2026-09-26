@@ -11,8 +11,6 @@
 # values-staging.yaml / values-prod.yaml verwaltet - dorthin schreibt die
 # CI-Pipeline bei der Promotion. Bewusst KEINE Defaults hier, damit es
 # keine zweite, veraltete Tag-Quelle gibt (Single Source of Truth).
-images:
-  postgres: postgres:16-alpine
 # Backend: KEIN 'replicas' - die Replica-Zahl wird vom HPA gesteuert (Aufgabe 6).
 backend:
   port: 8080
@@ -33,23 +31,12 @@ frontend:
   resources:
     requests: {cpu: 100m, memory: 128Mi}
     limits: {cpu: 300m, memory: 384Mi}
-db:
-  replicas: 1
-  port: 5432
-  storage: 1Gi
-  mountPath: /var/lib/postgresql
-  resources:
-    requests: {cpu: 100m, memory: 192Mi}
-    limits: {cpu: 400m, memory: 512Mi}
+# DB-Verbindung (URL/User/Passwort) kommt seit Aufgabe 4 aus dem Secret db-credentials.
 config:
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/postgres"
-  SPRING_DATASOURCE_USERNAME: "postgres"
   SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
   JWT_ISSUER: "Spring"
   JWT_EXPIRATION_MILLIS: "86400000"
   NEXT_PUBLIC_API_URL: "http://backend:8080"
-  POSTGRES_USER: "postgres"
-  POSTGRES_DB: "postgres"
 ingress:
   enabled: true # Default; wird pro Umgebung ueberschrieben (nur prod hat einen Ingress)
   className: nginx
@@ -71,6 +58,10 @@ networkPolicy:
   # Orchestrierung & Observability / Aufgabe 1: Prometheus-Scrape aus diesem
   # Namespace auf die Backend-Metriken erlauben (siehe allow-monitoring).
   monitoringNamespace: monitoring
+  # Aufgabe 4: Backend darf die Managed PostgreSQL im VPC erreichen (Port 25060)
+  database:
+    cidr: 10.0.0.0/8
+    port: 25060
 # --- Orchestrierung & Observability / Aufgabe 1: Monitoring ---
 # Erzeugt einen ServiceMonitor für das Backend, damit Prometheus die
 # Applikationsmetriken (Request Rate, Response Time, Error Rate) erfasst.

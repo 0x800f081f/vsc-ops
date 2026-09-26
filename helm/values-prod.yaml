@@ -30,11 +30,6 @@ frontend:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
     limits: {cpu: 400m, memory: 512Mi}
-db:
-  replicas: 1
-  resources:
-    requests: {cpu: 200m, memory: 256Mi}
-    limits: {cpu: 500m, memory: 640Mi}
 resourceQuota:
   enabled: true
   requests: {cpu: "3", memory: 3Gi}
