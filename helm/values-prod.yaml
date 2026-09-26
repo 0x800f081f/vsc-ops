@@ -1,0 +1,45 @@
+# ============================================================
+# PROD (Namespace user-mgmt-prod) - redundant, automatisch skalierend.
+# ============================================================
+
+# Image-Tags: werden von der Prod-Pipeline (deploy-prod.yaml,
+# Trigger: Push auf Branch "main") automatisch aktualisiert (Promotion).
+# Helm merged diese Datei UEBER values.yaml (valueFiles-Reihenfolge in
+# application-prod.yaml); der Tag hier ueberschreibt also den Default.
+images:
+  backend:
+    repository: ghcr.io/mikegarda/user_mgmt_service-backend
+    tag: 5e301a3
+  frontend:
+    repository: ghcr.io/mikegarda/user_mgmt_service-frontend
+    tag: 5e301a3
+backend:
+  resources:
+    requests: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 640Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 2 # nie weniger als 2 -> redundant
+    maxReplicas: 4 # passt in die ResourceQuota
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1 # bei Wartung/Drain bleibt immer >= 1 Backend aktiv
+frontend:
+  replicas: 2 # 2 Frontends -> Ingress verteilt per Round Robin
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 400m, memory: 512Mi}
+db:
+  replicas: 1
+  resources:
+    requests: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 640Mi}
+resourceQuota:
+  enabled: true
+  requests: {cpu: "3", memory: 3Gi}
+  limits: {cpu: "5", memory: 5Gi}
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  dnsNamespace: kube-system

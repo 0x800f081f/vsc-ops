@@ -1,0 +1,87 @@
+# ============================================================
+# BASIS-Werte (Defaults). Werden je Umgebung von
+# values-staging.yaml / values-prod.yaml ueberschrieben.
+# images.*.tag wird von der CI-Pipeline aktualisiert (Promotion) -
+# seit der 2-Branch-Strategie ausschliesslich in den Umgebungsdateien
+# (values-staging.yaml / values-prod.yaml), nicht mehr hier.
+# ============================================================
+
+# images: Hier liegt nur das Postgres-Image (Default fuer beide Umgebungen).
+# Backend-/Frontend-Images (Repository + Tag) werden ausschliesslich in
+# values-staging.yaml / values-prod.yaml verwaltet - dorthin schreibt die
+# CI-Pipeline bei der Promotion. Bewusst KEINE Defaults hier, damit es
+# keine zweite, veraltete Tag-Quelle gibt (Single Source of Truth).
+images:
+  postgres: postgres:16-alpine
+# Backend: KEIN 'replicas' - die Replica-Zahl wird vom HPA gesteuert (Aufgabe 6).
+backend:
+  port: 8080
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 400m, memory: 512Mi}
+  autoscaling: # --- Aufgabe 6: HPA ---
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget: # --- Aufgabe 6: PDB ---
+    enabled: true
+    minAvailable: 1
+frontend:
+  replicas: 1
+  port: 3000
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+db:
+  replicas: 1
+  port: 5432
+  storage: 1Gi
+  mountPath: /var/lib/postgresql
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 400m, memory: 512Mi}
+config:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/postgres"
+  SPRING_DATASOURCE_USERNAME: "postgres"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  JWT_ISSUER: "Spring"
+  JWT_EXPIRATION_MILLIS: "86400000"
+  NEXT_PUBLIC_API_URL: "http://backend:8080"
+  POSTGRES_USER: "postgres"
+  POSTGRES_DB: "postgres"
+ingress:
+  enabled: true # Default; wird pro Umgebung ueberschrieben (nur prod hat einen Ingress)
+  className: nginx
+  annotations: {}
+  paths:
+    - path: /
+      service: frontend
+      port: 3000
+# --- Aufgabe 5: Ressourcen-Deckel pro Namespace ---
+resourceQuota:
+  enabled: true
+  requests: {cpu: "1", memory: 1Gi}
+  limits: {cpu: "2", memory: 2Gi}
+# --- Aufgabe 5: Netzwerk-Isolation zwischen Namespaces ---
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  dnsNamespace: kube-system
+  # Orchestrierung & Observability / Aufgabe 1: Prometheus-Scrape aus diesem
+  # Namespace auf die Backend-Metriken erlauben (siehe allow-monitoring).
+  monitoringNamespace: monitoring
+# --- Orchestrierung & Observability / Aufgabe 1: Monitoring ---
+# Erzeugt einen ServiceMonitor für das Backend, damit Prometheus die
+# Applikationsmetriken (Request Rate, Response Time, Error Rate) erfasst.
+monitoring:
+  enabled: true
+  scrapeInterval: 30s
+  # Aufgabe 1: Schwellenwerte der eigenen PrometheusRule (templates/prometheusrule.yaml)
+  rules:
+    enabled: true
+    loginFailuresPerSecond: 0.5   # > 0.5/s = mehr als 30 fehlgeschlagene Logins pro Minute
+    loginFailuresFor: 1m
+    errorRatePercent: 5           # > 5 % der Requests mit HTTP 5xx
+    errorRateFor: 5m
+    backendDownFor: 2m

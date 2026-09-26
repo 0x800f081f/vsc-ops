@@ -1,0 +1,15 @@
+{{- if .Values.backend.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  # Bei freiwilligen Stoerungen (Node-Drain, Re-Scheduling) bleiben mindestens
+  # minAvailable Backend-Pods aktiv - Kubernetes evict nie mehr, als das erlaubt.
+  minAvailable: {{ .Values.backend.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "user-mgmt.selectorLabels" "backend" | nindent 6 }}
+{{- end }}

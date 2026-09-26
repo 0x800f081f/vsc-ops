@@ -1,0 +1,59 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.rules.enabled }}
+# Orchestrierung & Observability / Aufgabe 1: eigene PrometheusRule fuer den
+# user_mgmt_service. Liegt im App-Chart -> wird pro Umgebung (staging/prod)
+# in deren Namespace ausgerollt; die Ausdruecke filtern auf den eigenen Namespace.
+# Prometheus findet die Rule ueber ruleSelectorNilUsesHelmValues: false
+# (monitoring/values.yaml). Das Label "team: user-mgmt" ist der Schluessel,
+# ueber den Alertmanager die Alerts an ntfy weiterleitet (monitoring/alertmanager.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: user-mgmt-alerts
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: user-mgmt.rules
+      rules:
+        # 1) Fachlicher Fehlerzustand: gehaeufte fehlgeschlagene Logins (HTTP 401).
+        #    Der Login (POST /users/login) antwortet bei falschen Zugangsdaten mit 401.
+        #    Viele 401 in kurzer Zeit = Verdacht auf Brute-Force / Credential Stuffing.
+        - alert: UserMgmtLoginFailuresHigh
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace="{{ .Release.Namespace }}", application="user_mgmt_service", status="401"}[2m]))
+              > {{ .Values.monitoring.rules.loginFailuresPerSecond }}
+          for: {{ .Values.monitoring.rules.loginFailuresFor }}
+          labels:
+            severity: warning
+            team: user-mgmt
+          annotations:
+            summary: "Viele fehlgeschlagene Logins ({{ .Release.Namespace }})"
+            description: "{{`{{ $value | printf \"%.2f\" }}`}} fehlgeschlagene Logins pro Sekunde (Schwelle {{ .Values.monitoring.rules.loginFailuresPerSecond }}/s) - moeglicher Brute-Force-Angriff auf /users/login."
+
+        # 2) Technischer Fehlerzustand: Anteil Server-Fehler (HTTP 5xx) zu hoch.
+        - alert: UserMgmtHighErrorRate
+          expr: |
+            100 * sum(rate(http_server_requests_seconds_count{namespace="{{ .Release.Namespace }}", application="user_mgmt_service", status=~"5.."}[5m]))
+              / sum(rate(http_server_requests_seconds_count{namespace="{{ .Release.Namespace }}", application="user_mgmt_service"}[5m]))
+              > {{ .Values.monitoring.rules.errorRatePercent }}
+          for: {{ .Values.monitoring.rules.errorRateFor }}
+          labels:
+            severity: critical
+            team: user-mgmt
+          annotations:
+            summary: "Hohe 5xx-Fehlerrate ({{ .Release.Namespace }})"
+            description: "{{`{{ $value | printf \"%.1f\" }}`}} % der Requests enden mit HTTP 5xx (Schwelle {{ .Values.monitoring.rules.errorRatePercent }} %)."
+
+        # 3) Verfuegbarkeit: kein Backend-Pod mehr scrapebar.
+        - alert: UserMgmtBackendDown
+          expr: |
+            sum(up{namespace="{{ .Release.Namespace }}", service="backend"}) == 0
+              or absent(up{namespace="{{ .Release.Namespace }}", service="backend"})
+          for: {{ .Values.monitoring.rules.backendDownFor }}
+          labels:
+            severity: critical
+            team: user-mgmt
+          annotations:
+            summary: "Backend nicht erreichbar ({{ .Release.Namespace }})"
+            description: "Prometheus erreicht keinen Backend-Pod mehr - der user_mgmt_service ist ausgefallen."
+{{- end }}

@@ -1,17 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: user-mgmt
+  name: user-mgmt-staging
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/0x800f081f/vsc-ops.git
+    repoURL: https://github.com/MikeGarda/vsc-ops.git
     targetRevision: main
-    path: k8s_helm
+    path: helm
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: user-mgmt
+    namespace: user-mgmt-staging
   syncPolicy:
     automated:
       prune: true

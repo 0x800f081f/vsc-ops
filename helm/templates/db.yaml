@@ -18,6 +18,10 @@ metadata:
     {{- include "user-mgmt.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.db.replicas }}
+  # Recreate statt RollingUpdate: das Volume ist ReadWriteOnce - zwei Postgres-Pods
+  # koennten es nicht gleichzeitig mounten. Alter Pod stoppt, dann startet der neue.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "user-mgmt.selectorLabels" "db" | nindent 6 }}
@@ -44,6 +48,21 @@ spec:
           volumeMounts:
             - name: db-storage
               mountPath: {{ .Values.db.mountPath }}
+          resources:
+            {{- toYaml .Values.db.resources | nindent 12 }}
+          # --- Aufgabe 6: Probes (pg_isready nutzt die konfigurierten User/DB-Werte) ---
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: db-storage
           persistentVolumeClaim:

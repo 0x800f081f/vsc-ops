@@ -6,6 +6,11 @@ metadata:
     {{- include "user-mgmt.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.frontend.replicas }}
+  strategy:                        # --- Aufgabe 6: RollingUpdate ohne Unterbruch ---
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "user-mgmt.selectorLabels" "frontend" | nindent 6 }}
@@ -25,6 +30,23 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: NEXT_PUBLIC_API_URL
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          # --- Aufgabe 6: Probes (GET / antwortet mit 307 -> zaehlt als gesund) ---
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service

@@ -1,0 +1,48 @@
+# ============================================================
+# STAGING (Namespace user-mgmt-staging) - klein, 1 Replica.
+# ============================================================
+
+# Image-Tags: werden von der Staging-Pipeline (deploy-staging.yaml,
+# Trigger: Push auf Branch "release") automatisch aktualisiert (Promotion).
+# Helm merged diese Datei UEBER values.yaml (valueFiles-Reihenfolge in
+# application-staging.yaml); der Tag hier ueberschreibt also den Default.
+images:
+  backend:
+    repository: ghcr.io/mikegarda/user_mgmt_service-backend
+    tag: 098f8d4
+  frontend:
+    repository: ghcr.io/mikegarda/user_mgmt_service-frontend
+    tag: 098f8d4
+backend:
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: false # Staging darf unterbrochen werden (1 Replica; ein PDB wuerde Node-Drains blockieren)
+frontend:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+db:
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+resourceQuota:
+  enabled: true
+  requests: {cpu: "1", memory: 1Gi}
+  limits: {cpu: "2", memory: 2Gi}
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  dnsNamespace: kube-system
+# Staging bekommt KEINEN Ingress (sonst Host-Kollision mit prod auf "_"/"/").
+# Staging ist intern per Port-Forward testbar.
+ingress:
+  enabled: false

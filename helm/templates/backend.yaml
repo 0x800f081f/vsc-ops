@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  # KEIN replicas: die Anzahl steuert der HPA (sonst wuerde ArgoCD jeden Sync zuruecksetzen)
+  strategy:                        # --- Aufgabe 6: RollingUpdate ohne Unterbruch ---
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0            # nie einen Pod abschalten, bevor der neue bereit ist
+      maxSurge: 1                  # dafuer voruebergehend einen zusaetzlichen Pod
+  selector:
+    matchLabels:
+      {{- include "user-mgmt.selectorLabels" "backend" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "user-mgmt.selectorLabels" "backend" | nindent 8 }}
+    spec:
+      containers:
+        - name: backend
+          image: {{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          # --- Aufgabe 6: Probes ---
+          # Das Backend hat keinen oeffentlichen Health-Endpunkt (kein Actuator;
+          # Spring Security antwortet auf GET / mit 403). Deshalb tcpSocket-Probes:
+          # sie pruefen, ob der Server auf Port 8080 Verbindungen annimmt - ohne Login.
+          startupProbe:                    # gibt der JVM Zeit zum Hochfahren (bis 3 Min)
+            tcpSocket:
+              port: {{ .Values.backend.port }}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:                  # erst dann bekommt der Pod Traffic
+            tcpSocket:
+              port: {{ .Values.backend.port }}
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:                   # haengt der Prozess, wird er neu gestartet
+            tcpSocket:
+              port: {{ .Values.backend.port }}
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "user-mgmt.selectorLabels" "backend" | nindent 4 }}
+  ports:
+    # Benannter Port: der ServiceMonitor (Aufgabe 1, Orchestrierung & Observability)
+    # referenziert Endpunkte über den Port-Namen.
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}

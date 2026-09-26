@@ -1,0 +1,37 @@
+{{- if .Values.backend.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: {{ .Values.backend.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.backend.autoscaling.maxReplicas }}
+  metrics:
+    # Nur CPU: bei einer JVM bleibt der belegte Speicher (Heap) hoch, auch ohne Last -
+    # Memory waere als Skalierungs-Signal irrefuehrend.
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.backend.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # bei Last sofort hochskalieren
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300   # 5 Min abwarten, bevor runterskaliert wird (kein Flattern)
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+{{- end }}

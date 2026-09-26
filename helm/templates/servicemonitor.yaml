@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled }}
+# Orchestrierung & Observability / Aufgabe 1: ServiceMonitor für die
+# Applikationsmetriken des Backends (Request Rate, Response Time, Error Rate).
+# Der kube-prometheus-stack (Namespace "monitoring") erkennt den Monitor über
+# den nil-Selector (siehe monitoring/values.yaml) und scrapt /actuator/prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.scrapeInterval }}
+{{- end }}

@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-staging
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: k6-staging
+          image: grafana/k6:latest
+          args:
+            - run
+            - /scripts/script.ts
+          env:
+            - name: BASE_URL
+              value: "http://backend.user-mgmt-staging:8080"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      restartPolicy: Never
+      volumes:
+        - name: scripts
+          configMap:
+            name: k6-scripts
+  backoffLimit: 1
