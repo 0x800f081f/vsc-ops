@@ -91,7 +91,6 @@ if (-not $s.PSObject.Properties['GRAFANA_PASSWORD']) {
 foreach ($e in $envs) {
   kubectl create namespace $e.ns --dry-run=client -o yaml | kubectl apply -f - | Out-Host
   kubectl create secret generic app-secret -n $e.ns `
-    --from-literal=SPRING_DATASOURCE_PASSWORD="$($s.DB_PASSWORD)" `
     --from-literal=JWT_SECRET="$($s.JWT_SECRET)" `
     --dry-run=client -o yaml | kubectl apply -f - | Out-Host
 }

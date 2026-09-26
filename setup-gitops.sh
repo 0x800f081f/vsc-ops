@@ -19,7 +19,6 @@ set -euo pipefail
 # gitignorten Datei "secrets.env" (Vorlage: siehe README) oder aus Umgebungsvariablen.
 [ -f "$(dirname "${BASH_SOURCE[0]}")/secrets.env" ] && source "$(dirname "${BASH_SOURCE[0]}")/secrets.env"
 : "${JWT_SECRET:?JWT_SECRET fehlt (secrets.env oder export)}"
-: "${DB_PASSWORD:?DB_PASSWORD fehlt (secrets.env oder export)}"
 : "${GRAFANA_PASSWORD:?GRAFANA_PASSWORD fehlt (secrets.env oder export)}"
 : "${NTFY_TOKEN:?NTFY_TOKEN fehlt (secrets.env oder export)}"
 
@@ -120,7 +119,6 @@ for i in "${!ENV_NS[@]}"; do
   ns="${ENV_NS[$i]}"
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
   kubectl create secret generic app-secret -n "$ns" \
-    --from-literal=SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
     --from-literal=JWT_SECRET="$JWT_SECRET" \
     --dry-run=client -o yaml | kubectl apply -f -
 done

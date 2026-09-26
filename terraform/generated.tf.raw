@@ -1,0 +1,63 @@
+# __generated__ by Terraform
+# Please review these resources and move them into your main configuration files.
+
+# __generated__ by Terraform
+resource "digitalocean_kubernetes_cluster" "teko_doks" {
+  auto_upgrade                     = false
+  cluster_subnet                   = "10.115.0.0/16"
+  destroy_all_associated_resources = null
+  ha                               = true
+  isolated_workers                 = false
+  kubeconfig_expire_seconds        = null
+  name                             = "teko-doks"
+  region                           = "fra1"
+  registry_integration             = null
+  service_subnet                   = "10.114.32.0/19"
+  surge_upgrade                    = true
+  tags                             = []
+  version                          = "1.36.3-do.5"
+  vpc_uuid                         = "42f328eb-6b9a-418f-bb68-37810056778d"
+  worker_subnet_uuid               = "89956747-8e4d-4180-85cc-a09c7749df04"
+  amd_gpu_device_metrics_exporter_plugin {
+    enabled = false
+  }
+  amd_gpu_device_plugin {
+    enabled = false
+  }
+  amd_gpu_dra_driver {
+    enabled = false
+  }
+  coredns_autoscaler {
+    enabled = true
+  }
+  maintenance_policy {
+    day        = "any"
+    start_time = "00:00"
+  }
+  node_pool {
+    auto_scale         = false
+    gpu_partition_mode = null
+    labels             = {}
+    max_nodes          = 0
+    min_nodes          = 0
+    name               = "worker-pool"
+    node_count         = 0
+    size               = "s-2vcpu-4gb"
+    tags               = []
+  }
+  nvidia_gpu_device_plugin {
+    enabled = false
+  }
+  nvidia_gpu_dra_driver {
+    enabled = false
+  }
+  p2p_oci_registry_plugin {
+    enabled = false
+  }
+  rdma_shared_device_plugin {
+    enabled = false
+  }
+  routing_agent {
+    enabled = false
+  }
+}

@@ -9,10 +9,10 @@
 images:
   backend:
     repository: ghcr.io/mikegarda/user_mgmt_service-backend
-    tag: 5e301a3
+    tag: 53e8665
   frontend:
     repository: ghcr.io/mikegarda/user_mgmt_service-frontend
-    tag: 5e301a3
+    tag: 53e8665
 backend:
   resources:
     requests: {cpu: 200m, memory: 256Mi}
@@ -30,11 +30,6 @@ frontend:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
     limits: {cpu: 400m, memory: 512Mi}
-db:
-  replicas: 1
-  resources:
-    requests: {cpu: 200m, memory: 256Mi}
-    limits: {cpu: 500m, memory: 640Mi}
 resourceQuota:
   enabled: true
   requests: {cpu: "3", memory: 3Gi}

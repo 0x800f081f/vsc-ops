@@ -81,4 +81,27 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.backend.port }}
+---
+# 5) Aufgabe 4: Das Backend darf die Managed PostgreSQL erreichen. Sie liegt
+#    ausserhalb des Clusters (im VPC) - ohne diese Ausnahme blockiert
+#    allow-same-namespace die Verbindung (Egress nur im eigenen Namespace).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-database
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.database.cidr }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.networkPolicy.database.port }}
 {{- end }}

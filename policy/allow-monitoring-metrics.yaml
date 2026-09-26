@@ -1,0 +1,29 @@
+# Orchestrierung & Observability / Aufgabe 1 (Erweiterung Aufgabe 5, Kyverno):
+# Prometheus (Namespace "monitoring") darf die Metrik-Endpunkte der
+# Kyverno-Controller (admission-, background-, cleanup-, reports-controller)
+# im Namespace "policy" scrapen (kyverno-*-metrics-Services, Port 8000).
+# Kyverno selbst installiert standardmaessig KEINE NetworkPolicy
+# (networkPolicy.enabled=false je Controller, siehe Chart-Values), daher hier
+# als eigenstaendiges, deklaratives Manifest im Ops-Repo (wie die ClusterPolicies).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-metrics
+  namespace: policy
+  labels:
+    app.kubernetes.io/part-of: kyverno
+    app.kubernetes.io/managed-by: vsc-ops
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: kyverno
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8000
