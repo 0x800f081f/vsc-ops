@@ -1,4 +1,4 @@
-﻿# Aufgabe 3: Den bestehenden (per doctl erstellten) Cluster in Terraform uebernehmen.
+# Aufgabe 3: Den bestehenden (per doctl erstellten) Cluster in Terraform uebernehmen.
 # Vorgehen:
 #   1. terraform plan "-generate-config-out=generated.tf"
 #      (dafuer war voruebergehend "provider = digitalocean" hier noetig, weil noch
