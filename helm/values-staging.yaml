@@ -9,17 +9,17 @@
 images:
   backend:
     repository: ghcr.io/mikegarda/user_mgmt_service-backend
-    tag: 16506c1
+    tag: 0dd9c7f
   frontend:
     repository: ghcr.io/mikegarda/user_mgmt_service-frontend
-    tag: 16506c1
+    tag: 0dd9c7f
   module_service:
     repository: ghcr.io/mikegarda/module_service
-    tag: 16506c1
+    tag: 0dd9c7f
 backend:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
-    limits: {cpu: "1", memory: 384Mi}  # JVM-Start braucht CPU-Burst
+    limits: {cpu: "1", memory: 384Mi} # JVM-Start braucht CPU-Burst
   autoscaling:
     enabled: true
     minReplicas: 1
