@@ -1,3 +1,7 @@
+{{- if .Values.module_service.enabled }}
+# Aufgabe 6: module_service (FastAPI). Verwaltet Module und Zuweisungen in der
+# Managed MySQL. Wird vom Backend synchron per REST ueber den Service
+# "module-service" aufgerufen.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,7 +10,7 @@ metadata:
     {{- include "user-mgmt.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.module_service.replicas }}
-  strategy:                        # --- Aufgabe 6: RollingUpdate ohne Unterbruch ---
+  strategy:                        # RollingUpdate ohne Unterbruch
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
@@ -23,13 +27,15 @@ spec:
         - name: module-service
           image: {{ .Values.images.module_service.repository }}:{{ .Values.images.module_service.tag }}
           ports:
-            - containerPort: {{ .Values.module_service.port }}
+            - name: web
+              containerPort: {{ .Values.module_service.port }}
           env:
+            # Zugangsdaten zur Managed MySQL - von Terraform als Secret angelegt
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: app-secret
-                  key: MODULE_SERVICE_DATABASE_URL
+                  name: module-service-db
+                  key: DATABASE_URL
             - name: MYSQL_SSL_DISABLED
               valueFrom:
                 configMapKeyRef:
@@ -40,33 +46,33 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: MODULE_SERVICE_LOG_LEVEL
+          # Vertikale Skalierung: Requests/Limits pro Umgebung in values-*.yaml
           resources:
             {{- toYaml .Values.module_service.resources | nindent 12 }}
-          # --- Aufgabe 6: Probes (GET / antwortet mit 307 -> zaehlt als gesund) ---
+          # Probes (erfuellen die Kyverno-Policy require-probes):
+          #  /health/ready prueft zusaetzlich die DB-Verbindung -> kein Traffic ohne DB
+          #  /health/live  prueft nur den Prozess -> kein Neustart bei DB-Ausfall
           startupProbe:
             httpGet:
-              path: /api/v1/modules
-              port: {{ .Values.module_service.port }}
-              scheme: HTTP
+              path: /health/ready
+              port: web
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 30
           readinessProbe:
             httpGet:
-              path: /api/v1/modules
-              port: {{ .Values.module_service.port }}
+              path: /health/ready
+              port: web
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-            successThreshold: 1
           livenessProbe:
             httpGet:
-              path: /api/v1/modules
-              port: {{ .Values.module_service.port }}
+              path: /health/live
+              port: web
             periodSeconds: 15
-            timeoutSeconds: 5
+            timeoutSeconds: 3
             failureThreshold: 3
-            successThreshold: 1
 ---
 apiVersion: v1
 kind: Service
@@ -74,9 +80,15 @@ metadata:
   name: module-service
   labels:
     {{- include "user-mgmt.labels" . | nindent 4 }}
+    # eigenes Label -> der ServiceMonitor des module_service findet genau diesen Service
+    app: module_service
 spec:
   selector:
     {{- include "user-mgmt.selectorLabels" "module_service" | nindent 4 }}
   ports:
-    - port: {{ .Values.module_service.port }}
+    # Name "web" (nicht "http"): sonst wuerde der Backend-ServiceMonitor hier
+    # faelschlich /actuator/prometheus scrapen
+    - name: web
+      port: {{ .Values.module_service.port }}
       targetPort: {{ .Values.module_service.port }}
+{{- end }}

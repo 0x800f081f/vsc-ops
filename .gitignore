@@ -1,2 +1,9 @@
 do-secrets.json
 secrets.env
+
+# --- Terraform ---
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.secret.tfvars

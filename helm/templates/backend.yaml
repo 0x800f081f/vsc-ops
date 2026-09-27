@@ -29,6 +29,9 @@ spec:
                 name: app-config
             - secretRef:
                 name: app-secret
+            # Aufgabe 4: Verbindungsdaten der Managed PostgreSQL (von Terraform angelegt)
+            - secretRef:
+                name: db-credentials
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           # Der JVM-Start kann 30–90s dauern. Solange läuft NUR die

@@ -1,0 +1,21 @@
+{{- if and .Values.monitoring.enabled .Values.module_service.enabled }}
+# Aufgabe 6: Prometheus scrapt die Telemetrie des module_service (/metrics,
+# prometheus-fastapi-instrumentator): Request Rate, Response Time, Error Rate.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: module-service
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: module_service
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: web
+      path: /metrics
+      interval: {{ .Values.monitoring.scrapeInterval }}
+{{- end }}

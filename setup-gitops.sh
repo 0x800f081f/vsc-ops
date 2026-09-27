@@ -15,12 +15,12 @@
 #
 set -euo pipefail
 
-# Secrets fuer App + Monitoring (lokal, hartkodiert)
-JWT_SECRET="0640a7da5b93ada23ea9afbee692fe7073aae3d76d432ee06184e6219c02311c"
-DB_PASSWORD="fce1487cd47acae11c618afd"
-GRAFANA_PASSWORD="e277127b73497a4042b558e209472815"
-NTFY_TOKEN="tk_v1dy3ast546gnp9blu6ri0grob4xv"
-$MODULE_SERVICE_DATABASE_URL="mysql+pymysql://postgres:$DB_PASSWORD@db:25060/module_service?charset=utf8mb4"
+# Secrets NICHT im Repo: aus lokaler, gitignorter "secrets.env" oder aus der Umgebung.
+# Vorlage secrets.env:  JWT_SECRET=...  GRAFANA_PASSWORD=...  NTFY_TOKEN=tk_...
+[ -f "$(dirname "${BASH_SOURCE[0]}")/secrets.env" ] && source "$(dirname "${BASH_SOURCE[0]}")/secrets.env"
+: "${JWT_SECRET:?JWT_SECRET fehlt (secrets.env oder export)}"
+: "${GRAFANA_PASSWORD:?GRAFANA_PASSWORD fehlt (secrets.env oder export)}"
+: "${NTFY_TOKEN:?NTFY_TOKEN fehlt (secrets.env oder export)}"
 
 # Pfade relativ zum Skript-Verzeichnis (funktioniert also aus jedem CWD)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -118,9 +118,7 @@ for i in "${!ENV_NS[@]}"; do
   ns="${ENV_NS[$i]}"
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
   kubectl create secret generic app-secret -n "$ns" \
-    --from-literal=SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
     --from-literal=JWT_SECRET="$JWT_SECRET" \
-    --from-literal=MODULE_SERVICE_DATABASE_URL="$MODULE_SERVICE_DATABASE_URL" \
     --dry-run=client -o yaml | kubectl apply -f -
 done
 # Namespace für monitoring
