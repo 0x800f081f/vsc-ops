@@ -33,20 +33,30 @@ spec:
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
           # --- Aufgabe 6: Probes (GET / antwortet mit 307 -> zaehlt als gesund) ---
+          startupProbe:
+            httpGet:
+              path: /api/health/readiness
+              port: {{ .Values.frontend.port }}
+              scheme: HTTP
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health/readiness
               port: {{ .Values.frontend.port }}
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
             failureThreshold: 3
+            successThreshold: 1
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health/liveness
               port: {{ .Values.frontend.port }}
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
             failureThreshold: 3
+            successThreshold: 1
 ---
 apiVersion: v1
 kind: Service

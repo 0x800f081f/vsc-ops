@@ -135,6 +135,9 @@ foreach ($e in $envs) { kubectl apply -f $e.app | Out-Host }
 # Orchestrierung & Observability / Aufgabe 1: kube-prometheus-stack (Namespace "monitoring")
 kubectl apply -f .\application-monitoring.yaml | Out-Host
 
+# Kyverno-Application
+kubectl apply -f .\application-kyverno.yaml | Out-Host
+
 # 6) Zugang ausgeben
 Write-Host "`n===================== FERTIG =====================" -ForegroundColor Green
 $pw = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"

@@ -9,10 +9,13 @@
 images:
   backend:
     repository: ghcr.io/mikegarda/user_mgmt_service-backend
-    tag: 098f8d4
+    tag: 5041eda
   frontend:
     repository: ghcr.io/mikegarda/user_mgmt_service-frontend
-    tag: 098f8d4
+    tag: 5041eda
+  module_service:
+    repository: ghcr.io/mikegarda/module_service
+    tag: 5041eda
 backend:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
@@ -25,6 +28,12 @@ backend:
   podDisruptionBudget:
     enabled: false # Staging darf unterbrochen werden (1 Replica; ein PDB wuerde Node-Drains blockieren)
 frontend:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+module_service:
+  enabled: true
   replicas: 1
   resources:
     requests: {cpu: 50m, memory: 128Mi}

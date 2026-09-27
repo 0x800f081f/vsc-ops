@@ -16,6 +16,7 @@ in diesem Repo. Deployt wird **nie manuell** – ausschliesslich über die
 ## Dokumentationen
 - [Prometheus](docs/Prometheus.md)
 - [k6-Lasttest](docs/k6.md)
+- [Kyverno](docs/kyverno.md)
 
 ## Branch-Modell
 

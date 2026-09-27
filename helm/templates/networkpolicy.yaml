@@ -69,8 +69,11 @@ metadata:
     {{- include "user-mgmt.labels" . | nindent 4 }}
 spec:
   podSelector:
-    matchLabels:
-      app: backend
+    matchExpressions:
+      # Aufgabe 6: auch der module_service wird von Prometheus gescrapt
+      - key: app
+        operator: In
+        values: [backend, module_service]
   policyTypes:
     - Ingress
   ingress:
@@ -81,14 +84,15 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.backend.port }}
+        - protocol: TCP
+          port: {{ .Values.module_service.port }}
 ---
-# 5) Aufgabe 4: Das Backend darf die Managed PostgreSQL erreichen. Sie liegt
-#    ausserhalb des Clusters (im VPC) - ohne diese Ausnahme blockiert
-#    allow-same-namespace die Verbindung (Egress nur im eigenen Namespace).
+# Aufgabe 4: Das Backend darf die Managed PostgreSQL erreichen (liegt ausserhalb
+# des Clusters im VPC). Ohne diese Ausnahme blockiert allow-same-namespace.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-database
+  name: allow-postgres
   labels:
     {{- include "user-mgmt.labels" . | nindent 4 }}
 spec:
@@ -100,8 +104,32 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: {{ .Values.networkPolicy.database.cidr }}
+            cidr: {{ .Values.networkPolicy.database.postgresCidr }}
       ports:
         - protocol: TCP
           port: {{ .Values.networkPolicy.database.port }}
+{{- if .Values.module_service.enabled }}
+---
+# Aufgabe 6: NUR der module_service darf zur Managed MySQL. Das Backend hat
+# dafuer weder Zugangsdaten noch (bei /32-CIDR) einen Netzwerkpfad.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mysql
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: module_service
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.database.mysqlCidr }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.networkPolicy.database.port }}
+{{- end }}
 {{- end }}

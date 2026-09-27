@@ -70,3 +70,22 @@ variable "db_size" {
   type        = string
   default     = "db-s-1vcpu-1gb"
 }
+
+# --- Aufgabe 6: Managed MySQL fuer den module_service ---
+variable "mysql_cluster_name" {
+  description = "Name der Managed-MySQL-Instanz"
+  type        = string
+  default     = "teko-mysql"
+}
+
+variable "mysql_version" {
+  description = "MySQL-Hauptversion"
+  type        = string
+  default     = "8.4"
+}
+
+variable "mysql_size" {
+  description = "Groesse der MySQL-Instanz (kleinste = guenstigste)"
+  type        = string
+  default     = "db-s-1vcpu-1gb"
+}

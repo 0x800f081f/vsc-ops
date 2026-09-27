@@ -14,5 +14,5 @@ spec:
         pattern:
           spec:
             containers:
-              - livenessProbe: "?*"
-                readinessProbe: "?*"
+              - (livenessProbe): "?*"
+                (readinessProbe): "?*"

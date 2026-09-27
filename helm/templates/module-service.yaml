@@ -1,0 +1,94 @@
+{{- if .Values.module_service.enabled }}
+# Aufgabe 6: module_service (FastAPI). Verwaltet Module und Zuweisungen in der
+# Managed MySQL. Wird vom Backend synchron per REST ueber den Service
+# "module-service" aufgerufen.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: module-service
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.module_service.replicas }}
+  strategy:                        # RollingUpdate ohne Unterbruch
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "user-mgmt.selectorLabels" "module_service" | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "user-mgmt.selectorLabels" "module_service" | nindent 8 }}
+    spec:
+      containers:
+        - name: module-service
+          image: {{ .Values.images.module_service.repository }}:{{ .Values.images.module_service.tag }}
+          ports:
+            - name: web
+              containerPort: {{ .Values.module_service.port }}
+          env:
+            # Zugangsdaten zur Managed MySQL - von Terraform als Secret angelegt
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: module-service-db
+                  key: DATABASE_URL
+            - name: MYSQL_SSL_DISABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MODULE_SERVICE_MYSQL_SSL_DISABLED
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MODULE_SERVICE_LOG_LEVEL
+          # Vertikale Skalierung: Requests/Limits pro Umgebung in values-*.yaml
+          resources:
+            {{- toYaml .Values.module_service.resources | nindent 12 }}
+          # Probes (erfuellen die Kyverno-Policy require-probes):
+          #  /health/ready prueft zusaetzlich die DB-Verbindung -> kein Traffic ohne DB
+          #  /health/live  prueft nur den Prozess -> kein Neustart bei DB-Ausfall
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: web
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: web
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: web
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: module-service
+  labels:
+    {{- include "user-mgmt.labels" . | nindent 4 }}
+    # eigenes Label -> der ServiceMonitor des module_service findet genau diesen Service
+    app: module_service
+spec:
+  selector:
+    {{- include "user-mgmt.selectorLabels" "module_service" | nindent 4 }}
+  ports:
+    # Name "web" (nicht "http"): sonst wuerde der Backend-ServiceMonitor hier
+    # faelschlich /actuator/prometheus scrapen
+    - name: web
+      port: {{ .Values.module_service.port }}
+      targetPort: {{ .Values.module_service.port }}
+{{- end }}

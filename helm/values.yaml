@@ -6,11 +6,10 @@
 # (values-staging.yaml / values-prod.yaml), nicht mehr hier.
 # ============================================================
 
-# images: Hier liegt nur das Postgres-Image (Default fuer beide Umgebungen).
-# Backend-/Frontend-Images (Repository + Tag) werden ausschliesslich in
-# values-staging.yaml / values-prod.yaml verwaltet - dorthin schreibt die
-# CI-Pipeline bei der Promotion. Bewusst KEINE Defaults hier, damit es
-# keine zweite, veraltete Tag-Quelle gibt (Single Source of Truth).
+# images: Repository + Tag aller Images (backend, frontend, module_service)
+# stehen ausschliesslich in values-staging.yaml / values-prod.yaml - dorthin
+# schreibt die CI-Pipeline bei der Promotion (Single Source of Truth).
+# Seit Aufgabe 4 gibt es kein Postgres-Image mehr (Managed PostgreSQL).
 # Backend: KEIN 'replicas' - die Replica-Zahl wird vom HPA gesteuert (Aufgabe 6).
 backend:
   port: 8080
@@ -31,12 +30,29 @@ frontend:
   resources:
     requests: {cpu: 100m, memory: 128Mi}
     limits: {cpu: 300m, memory: 384Mi}
-# DB-Verbindung (URL/User/Passwort) kommt seit Aufgabe 4 aus dem Secret db-credentials.
+# --- Aufgabe 6: module_service ---
+# enabled schaltet Deployment, Service, ServiceMonitor und DB-NetworkPolicy
+# pro Umgebung ein (Default aus; Staging/Prod aktivieren ihn in ihrer Datei).
+module_service:
+  enabled: false
+  replicas: 1
+  port: 8080
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+# DB-Verbindung des Backends (URL/User/Passwort) kommt seit Aufgabe 4 aus dem
+# Secret db-credentials, die des module_service aus module-service-db (beide Terraform).
 config:
   SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
   JWT_ISSUER: "Spring"
   JWT_EXPIRATION_MILLIS: "86400000"
   NEXT_PUBLIC_API_URL: "http://backend:8080"
+  MODULE_SERVICE_LOG_LEVEL: "INFO"
+  # Managed MySQL erzwingt TLS -> SSL darf NICHT deaktiviert sein
+  MODULE_SERVICE_MYSQL_SSL_DISABLED: "false"
+  # Aufgabe 6: Adresse des module_service fuer den REST-Client des Backends
+  # (Kubernetes-Service-Name im selben Namespace)
+  MODULE_SERVICE_URL: "http://module-service:8080"
 ingress:
   enabled: true # Default; wird pro Umgebung ueberschrieben (nur prod hat einen Ingress)
   className: nginx
@@ -58,10 +74,15 @@ networkPolicy:
   # Orchestrierung & Observability / Aufgabe 1: Prometheus-Scrape aus diesem
   # Namespace auf die Backend-Metriken erlauben (siehe allow-monitoring).
   monitoringNamespace: monitoring
-  # Aufgabe 4: Backend darf die Managed PostgreSQL im VPC erreichen (Port 25060)
+  # Aufgabe 4/6: Zugriff auf die Managed-Datenbanken (liegen im VPC, Port 25060).
+  # Backend -> nur PostgreSQL, module_service -> nur MySQL.
+  # 10.0.0.0/8 = ganzes privates Netz. Enger machen: die private IP der
+  # jeweiligen DB als /32 eintragen (siehe docs), dann kann das Backend die
+  # MySQL auch netzwerktechnisch nicht erreichen.
   database:
-    cidr: 10.0.0.0/8
     port: 25060
+    postgresCidr: 10.0.0.0/8
+    mysqlCidr: 10.0.0.0/8
 # --- Orchestrierung & Observability / Aufgabe 1: Monitoring ---
 # Erzeugt einen ServiceMonitor für das Backend, damit Prometheus die
 # Applikationsmetriken (Request Rate, Response Time, Error Rate) erfasst.

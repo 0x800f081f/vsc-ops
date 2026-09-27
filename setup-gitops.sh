@@ -15,13 +15,12 @@
 #
 set -euo pipefail
 
-# Secrets fuer App + Monitoring: NICHT im Repo. Werte kommen aus einer lokalen,
-# gitignorten Datei "secrets.env" (Vorlage: siehe README) oder aus Umgebungsvariablen.
+# Secrets NICHT im Repo: aus lokaler, gitignorter "secrets.env" oder aus der Umgebung.
+# Vorlage secrets.env:  JWT_SECRET=...  GRAFANA_PASSWORD=...  NTFY_TOKEN=tk_...
 [ -f "$(dirname "${BASH_SOURCE[0]}")/secrets.env" ] && source "$(dirname "${BASH_SOURCE[0]}")/secrets.env"
 : "${JWT_SECRET:?JWT_SECRET fehlt (secrets.env oder export)}"
 : "${GRAFANA_PASSWORD:?GRAFANA_PASSWORD fehlt (secrets.env oder export)}"
 : "${NTFY_TOKEN:?NTFY_TOKEN fehlt (secrets.env oder export)}"
-
 
 # Pfade relativ zum Skript-Verzeichnis (funktioniert also aus jedem CWD)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -143,6 +142,10 @@ done
 # Orchestrierung & Observability / Aufgabe 1: kube-prometheus-stack
 kubectl apply -f "$SCRIPT_DIR/application-monitoring.yaml"
 
+# ---------------------------------------------------------------------------
+# Kyverno-Application
+# ---------------------------------------------------------------------------
+kubectl apply -f "$SCRIPT_DIR/application-kyverno.yaml"
 
 # ---------------------------------------------------------------------------
 # Zugang ausgeben
