@@ -44,6 +44,11 @@ module_service:
 # Secret db-credentials, die des module_service aus module-service-db (beide Terraform).
 config:
   SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  # Aufgabe 4/6: Verbindungspool klein halten. Die Managed PostgreSQL (1 GB) erlaubt nur
+  # ca. 22 Verbindungen - fuer ALLE Backend-Pods aus staging UND prod zusammen.
+  # 9 Pods (HPA-Max beider Umgebungen + Rolling Update) x 2 = 18 Verbindungen.
+  SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: "2"
+  SPRING_DATASOURCE_HIKARI_MINIMUMIDLE: "1"
   JWT_ISSUER: "Spring"
   JWT_EXPIRATION_MILLIS: "86400000"
   NEXT_PUBLIC_API_URL: "http://backend:8080"
