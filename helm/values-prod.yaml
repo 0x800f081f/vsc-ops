@@ -16,7 +16,7 @@ images:
 backend:
   resources:
     requests: {cpu: 200m, memory: 256Mi}
-    limits: {cpu: 500m, memory: 640Mi}
+    limits: {cpu: "1", memory: 640Mi}  # JVM-Start braucht CPU-Burst
   autoscaling:
     enabled: true
     minReplicas: 2 # nie weniger als 2 -> redundant
@@ -33,7 +33,7 @@ frontend:
 resourceQuota:
   enabled: true
   requests: {cpu: "3", memory: 3Gi}
-  limits: {cpu: "5", memory: 5Gi}
+  limits: {cpu: "7", memory: 6Gi}
 networkPolicy:
   enabled: true
   ingressNamespace: ingress-nginx
