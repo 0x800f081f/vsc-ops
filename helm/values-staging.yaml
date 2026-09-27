@@ -9,17 +9,17 @@
 images:
   backend:
     repository: ghcr.io/mikegarda/user_mgmt_service-backend
-    tag: 5041eda
+    tag: 0dd9c7f
   frontend:
     repository: ghcr.io/mikegarda/user_mgmt_service-frontend
-    tag: 5041eda
+    tag: 0dd9c7f
   module_service:
     repository: ghcr.io/mikegarda/module_service
-    tag: 5041eda
+    tag: 0dd9c7f
 backend:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
-    limits: {cpu: 300m, memory: 384Mi}
+    limits: {cpu: "1", memory: 384Mi} # JVM-Start braucht CPU-Burst
   autoscaling:
     enabled: true
     minReplicas: 1
@@ -41,7 +41,7 @@ module_service:
 resourceQuota:
   enabled: true
   requests: {cpu: "1", memory: 1Gi}
-  limits: {cpu: "2", memory: 2Gi}
+  limits: {cpu: "5", memory: 2Gi}
 networkPolicy:
   enabled: true
   ingressNamespace: ingress-nginx
